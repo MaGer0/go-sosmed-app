@@ -13,4 +13,7 @@ func RegisterRoutes(r *gin.Engine) {
 	api.POST("/register", controllers.Register)
 	api.POST("/login", controllers.Login)
 
+	// Post
+	api.GET("/posts", controllers.AuthMiddleware, controllers.GetPosts)
+	api.POST("/posts", controllers.AuthMiddleware, controllers.CreatePost)
 }

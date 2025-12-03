@@ -11,6 +11,7 @@ func AuthMiddleware(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(401, gin.H{"error": "Unauthorized"})
+		c.Abort()
 		return
 	}
 
