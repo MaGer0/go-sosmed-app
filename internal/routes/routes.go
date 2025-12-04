@@ -16,4 +16,5 @@ func RegisterRoutes(r *gin.Engine) {
 	// Post
 	api.GET("/posts", controllers.AuthMiddleware, controllers.GetPosts)
 	api.POST("/posts", controllers.AuthMiddleware, controllers.CreatePost)
+	api.PATCH("/posts/:id", controllers.AuthMiddleware, controllers.UpdatePostCaption)
 }
