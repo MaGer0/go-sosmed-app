@@ -1,4 +1,4 @@
-package controllers
+package handler
 
 import (
 	"go-sosmed-app/internal/utils"

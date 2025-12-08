@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"go-sosmed-app/internal/controllers"
+	"go-sosmed-app/internal/handler"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,11 +10,11 @@ func RegisterRoutes(r *gin.Engine) {
 	api := r.Group("/api")
 
 	// Auth
-	api.POST("/register", controllers.Register)
-	api.POST("/login", controllers.Login)
+	api.POST("/register", handler.Register)
+	api.POST("/login", handler.Login)
 
 	// Post
-	api.GET("/posts", controllers.AuthMiddleware, controllers.GetPosts)
-	api.POST("/posts", controllers.AuthMiddleware, controllers.CreatePost)
-	api.PATCH("/posts/:id", controllers.AuthMiddleware, controllers.UpdatePostCaption)
+	api.GET("/posts", handler.AuthMiddleware, handler.GetPosts)
+	api.POST("/posts", handler.AuthMiddleware, handler.CreatePost)
+	api.PATCH("/posts/:id", handler.AuthMiddleware, handler.UpdatePostCaption)
 }
