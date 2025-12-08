@@ -109,14 +109,14 @@ func UpdatePostCaption(c *gin.Context) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(404, gin.H{
 				"success": false,
-				"message": "Product not found",
+				"message": "Post not found",
 			})
 			return
 		}
 
 		c.JSON(500, gin.H{
 			"success": false,
-			"message": "Failed to fetch product: " + err.Error()})
+			"message": "Failed to fetch post: " + err.Error()})
 		return
 	}
 
@@ -160,3 +160,56 @@ func UpdatePostCaption(c *gin.Context) {
 	})
 }
 
+func DeletePost(c *gin.Context) {
+	userId := c.GetUint("userId")
+	idString := c.Param("id")
+
+	id, err := strconv.Atoi(idString)
+
+	if err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": "Invalid id format",
+		})
+		return
+	}
+
+	var post models.Post
+
+	if err := db.DB.First(&post, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{
+				"success": false,
+				"message": "Post not found",
+			})
+			return
+		}
+
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "failed to fetch post: " + err.Error(),
+		})
+	}
+
+	if post.UserID != userId {
+		c.JSON(403, gin.H{
+			"success": false,
+			"message": "User not allowed",
+		})
+		return
+	}
+
+	if err := db.DB.Delete(&post).Error; err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to delete post: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"data":    post,
+	})
+
+}

@@ -17,4 +17,5 @@ func RegisterRoutes(r *gin.Engine) {
 	api.GET("/posts", handler.AuthMiddleware, handler.GetPosts)
 	api.POST("/posts", handler.AuthMiddleware, handler.CreatePost)
 	api.PATCH("/posts/:id", handler.AuthMiddleware, handler.UpdatePostCaption)
+	api.DELETE("/posts/:id", handler.AuthMiddleware, handler.DeletePost)
 }
