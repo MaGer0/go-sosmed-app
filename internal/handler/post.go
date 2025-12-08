@@ -45,7 +45,10 @@ func CreatePost(c *gin.Context) {
 		Caption: req.Caption,
 	}
 
-	if err := db.DB.Create(&post).Error; err != nil {
+	tx := db.DB.Begin()
+
+	if err := tx.Create(&post).Error; err != nil {
+		tx.Rollback()
 		c.JSON(500, gin.H{
 			"success": false,
 			"message": err.Error(),
@@ -53,30 +56,18 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	form, _ := c.MultipartForm()
-	files := form.File["files"]
+	postMedia, err := UploadImage(c, post.ID, tx)
 
-	var postMedia []models.PostMedia
-
-	for _, file := range files {
-		dst := "./storage/uploads/" + file.Filename
-		c.SaveUploadedFile(file, dst)
-
-		postMedia = append(postMedia, models.PostMedia{
-			PostID:   post.ID,
-			ImageURL: dst,
+	if err != nil {
+		tx.Rollback()
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": "Failed to upload media: " + err.Error(),
 		})
+		return
 	}
 
-	if len(postMedia) > 0 {
-		if err := db.DB.Create(&postMedia).Error; err != nil {
-			c.JSON(500, gin.H{
-				"success": false,
-				"message": "Failed to create PostMedia: " + err.Error(),
-			})
-			return
-		}
-	}
+	tx.Commit()
 
 	c.JSON(201, gin.H{
 		"success": true,
@@ -211,5 +202,4 @@ func DeletePost(c *gin.Context) {
 		"success": true,
 		"data":    post,
 	})
-
 }
