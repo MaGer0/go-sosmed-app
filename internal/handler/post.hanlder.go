@@ -6,10 +6,25 @@ import (
 	"go-sosmed-app/internal/models"
 	"go-sosmed-app/internal/utils"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+func validateCaption(caption string) (string, bool, string) {
+	trimedCaption := strings.TrimSpace(caption)
+
+	if trimedCaption == "" {
+		return trimedCaption, false, "Field caption cannot be empty"
+	}
+
+	if len(trimedCaption) > 500 {
+		return trimedCaption, false, "Field caption cannot exceed 500 character"
+	}
+
+	return trimedCaption, true, ""
+}
 
 func GetPosts(c *gin.Context) {
 	userId := c.GetUint("userId")
@@ -29,7 +44,7 @@ func GetPosts(c *gin.Context) {
 func CreatePost(c *gin.Context) {
 	userId := c.GetUint("userId")
 	var req struct {
-		Caption string `form:"caption" binding:"required"`
+		Caption string `form:"caption" binding:"required,max=500"`
 	}
 
 	if err := c.ShouldBind(&req); err != nil {
@@ -40,9 +55,18 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
+	trimedCaption, isValid, errCaptionValidate := validateCaption(req.Caption)
+
+	if !isValid {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": errCaptionValidate,
+		})
+	}
+
 	post := models.Post{
 		UserID:  userId,
-		Caption: req.Caption,
+		Caption: trimedCaption,
 	}
 
 	tx := db.DB.Begin()

@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func isCommentEmpty(comment string) (bool, string, string) {
+func validateComment(comment string) (bool, string, string) {
 	trimedComment := strings.TrimSpace(comment)
 
 	if trimedComment == "" {
@@ -70,7 +70,7 @@ func AddComment(c *gin.Context) {
 		return
 	}
 
-	isValid, commentText, message := isCommentEmpty(req.CommentText)
+	isValid, commentText, message := validateComment(req.CommentText)
 
 	if !isValid {
 		c.JSON(400, gin.H{
@@ -142,7 +142,7 @@ func UpdateComment(c *gin.Context) {
 	}
 
 	var req struct {
-		CommentText string `json:"comment_text" binding:"required"`
+		CommentText string `json:"comment_text" binding:"required,max=500"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -153,7 +153,7 @@ func UpdateComment(c *gin.Context) {
 		return
 	}
 
-	isValid, commentText, message := isCommentEmpty(req.CommentText)
+	isValid, commentText, message := validateComment(req.CommentText)
 
 	if !isValid {
 		c.JSON(400, gin.H{
