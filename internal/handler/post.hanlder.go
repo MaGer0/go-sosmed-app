@@ -84,7 +84,7 @@ func UpdatePostCaption(c *gin.Context) {
 	userId := c.GetUint("userId")
 	idString := c.Param("id")
 
-	id, err := strconv.Atoi(idString)
+	id, err := strconv.ParseUint(idString, 10, 64)
 
 	if err != nil {
 		c.JSON(400, gin.H{
@@ -155,7 +155,7 @@ func DeletePost(c *gin.Context) {
 	userId := c.GetUint("userId")
 	idString := c.Param("id")
 
-	id, err := strconv.Atoi(idString)
+	id, err := strconv.ParseUint(idString, 10, 64)
 
 	if err != nil {
 		c.JSON(400, gin.H{
