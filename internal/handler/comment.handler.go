@@ -175,3 +175,58 @@ func UpdateComment(c *gin.Context) {
 		"data":    comment,
 	})
 }
+
+func DeleteComment(c *gin.Context) {
+	userId := c.GetUint("userId")
+
+	commentIdString := c.Param("id")
+
+	commentId, err := strconv.ParseUint(commentIdString, 10, 64)
+
+	if err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": "Invalid comment id format",
+		})
+		return
+	}
+
+	var comment models.Comment
+
+	if err := db.DB.First(&comment, commentId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{
+				"success": false,
+				"message": "Comment not found",
+			})
+			return
+		}
+
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to check if comment exists: " + err.Error(),
+		})
+		return
+	}
+
+	if comment.UserID != userId {
+		c.JSON(403, gin.H{
+			"success": false,
+			"message": "User not allowed",
+		})
+		return
+	}
+
+	if err := db.DB.Delete(&comment).Error; err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to delete comment: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"data":    comment,
+	})
+}
