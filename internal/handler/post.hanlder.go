@@ -60,7 +60,7 @@ func CreatePost(c *gin.Context) {
 	if !isValid {
 		c.JSON(400, gin.H{
 			"success": false,
-			"message": errCaptionValidate	,
+			"message": errCaptionValidate,
 		})
 	}
 
