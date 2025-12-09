@@ -166,17 +166,22 @@ func UpdatePostMedia(c *gin.Context) {
 		return
 	}
 
-	var mediaToDelete []models.PostMedia
-	tes := 0
 	if len(req.MediaIdsToDelete) > 0 {
-		tes = len(req.MediaIdsToDelete)
-
+		var mediaToDelete []models.PostMedia
 		if err := db.DB.Where("id IN ?", req.MediaIdsToDelete).Where("post_id = ?", postId).Find(&mediaToDelete).Error; err != nil {
 			c.JSON(500, gin.H{
 				"success": false,
 				"message": "Failed to fetch post media: " + err.Error(),
 			})
 			return
+		}
+
+		if len(mediaToDelete) == 0 {
+			c.JSON(404, gin.H{
+				"success": false,
+				"message": "Post media cannot be found",
+			})
+			return 
 		}
 
 		for _, mediumToDelete := range mediaToDelete {
@@ -187,13 +192,22 @@ func UpdatePostMedia(c *gin.Context) {
 			c.JSON(500, gin.H{
 				"success": false,
 				"message": "Failed to delete post media: " + err.Error(),
+				"data":    mediaToDelete,
 			})
 			return
 		}
 	}
 
+	if err := db.DB.Where("post_id = ?", postId).Find(&postMedia).Error; err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to fetch post media: " + err.Error(),
+		})
+		return
+	}
+
 	c.JSON(200, gin.H{
 		"success": true,
-		"tes":     tes,
+		"data":    postMedia,
 	})
 }
