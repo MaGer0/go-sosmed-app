@@ -5,6 +5,8 @@ import (
 	"go-sosmed-app/internal/db"
 	"go-sosmed-app/internal/models"
 	"go-sosmed-app/internal/utils"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -208,22 +210,43 @@ func DeletePost(c *gin.Context) {
 		return
 	}
 
-	tx := db.DB.Begin()
-	if err := tx.Delete(&post).Error; err != nil {
+	// Delete postMedia
+	var postMedia []models.PostMedia
+
+	if err := db.DB.Where("post_id = ?", post.ID).Find(&postMedia).Error; err != nil {
 		c.JSON(500, gin.H{
 			"success": false,
-			"message": "Failed to delete post: " + err.Error(),
+			"message": "Failed to fetch post media: " + err.Error(),
 		})
 		return
 	}
 
-	isSuccess, err := DeleteMedia(post.ID)
+	for _, postMedium := range postMedia {
+		if err := os.Remove(filepath.Join("storage", postMedium.ImageURL)); err != nil {
+			c.JSON(500, gin.H{
+				"success": false,
+				"message": "Failed to delete post media: " + err.Error(),
+			})
+			return
+		}
+	}
 
-	if !isSuccess {
+	tx := db.DB.Begin()
+
+	if err := tx.Where("post_id = ?", post.ID).Delete(&models.PostMedia{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(500, gin.H{
 			"success": false,
-			"message": "Failed to delete media: " + err.Error(),
+			"message": "Failed to delete post media: " + err.Error(),
+		})
+		return
+	}
+
+	if err := tx.Delete(&post).Error; err != nil {
+		tx.Rollback()
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to delete post: " + err.Error(),
 		})
 		return
 	}

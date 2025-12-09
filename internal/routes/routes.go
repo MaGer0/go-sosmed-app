@@ -23,4 +23,7 @@ func RegisterRoutes(r *gin.Engine) {
 	api.POST("/comments/:postId", handler.AuthMiddleware, handler.AddComment)
 	api.PATCH("/comments/:id", handler.AuthMiddleware, handler.UpdateComment)
 	api.DELETE("/comments/:id", handler.AuthMiddleware, handler.DeleteComment)
+
+	// Post Media
+	api.PATCH("/post-media/:postId", handler.AuthMiddleware, handler.UpdatePostMedia)
 }
