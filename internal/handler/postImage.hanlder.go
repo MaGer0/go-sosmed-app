@@ -2,7 +2,10 @@ package handler
 
 import (
 	"fmt"
+	"go-sosmed-app/internal/db"
 	"go-sosmed-app/internal/models"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -10,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func UploadImage(c *gin.Context, postId uint, tx *gorm.DB) ([]models.PostMedia, error) {
+func UploadMedia(c *gin.Context, postId uint, tx *gorm.DB) ([]models.PostMedia, error) {
 	form, err := c.MultipartForm()
 
 	if err != nil {
@@ -53,4 +56,25 @@ func UploadImage(c *gin.Context, postId uint, tx *gorm.DB) ([]models.PostMedia, 
 	}
 
 	return postMedia, nil
+}
+
+func DeleteMedia(postId uint) (bool, error) {
+
+	var postMedia []models.PostMedia
+
+	if err := db.DB.Where("post_id = ?", postId).Find(&postMedia).Error; err != nil {
+		return false, err
+	}
+
+	for _, postMedium := range postMedia {
+		if err := os.Remove(filepath.Join("storage", postMedium.ImageURL)); err != nil {
+			return false, err
+		}
+	}
+
+	if err := db.DB.Where("post_id = ?", postId).Delete(&models.PostMedia{}).Error; err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

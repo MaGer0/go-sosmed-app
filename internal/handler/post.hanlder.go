@@ -80,7 +80,7 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	postMedia, err := UploadImage(c, post.ID, tx)
+	postMedia, err := UploadMedia(c, post.ID, tx)
 
 	if err != nil {
 		tx.Rollback()
@@ -208,10 +208,22 @@ func DeletePost(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Delete(&post).Error; err != nil {
+	tx := db.DB.Begin()
+	if err := tx.Delete(&post).Error; err != nil {
 		c.JSON(500, gin.H{
 			"success": false,
 			"message": "Failed to delete post: " + err.Error(),
+		})
+		return
+	}
+
+	isSuccess, err := DeleteMedia(post.ID)
+
+	if !isSuccess {
+		tx.Rollback()
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to delete media: " + err.Error(),
 		})
 		return
 	}
