@@ -94,9 +94,9 @@ func UpdatePostCaption(c *gin.Context) {
 		return
 	}
 
-	var product models.Post
+	var post models.Post
 
-	if err := db.DB.First(&product, id).Error; err != nil {
+	if err := db.DB.First(&post, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(404, gin.H{
 				"success": false,
@@ -111,7 +111,7 @@ func UpdatePostCaption(c *gin.Context) {
 		return
 	}
 
-	if userId != product.UserID {
+	if userId != post.UserID {
 		c.JSON(403, gin.H{
 			"success": false,
 			"message": "User not allowed",
@@ -131,7 +131,7 @@ func UpdatePostCaption(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&product).Update("caption", req.Caption).Error; err != nil {
+	if err := db.DB.Model(&post).Update("caption", req.Caption).Error; err != nil {
 		c.JSON(500, gin.H{
 			"success": false,
 			"message": "Failed to update caption: " + err.Error(),
@@ -139,15 +139,9 @@ func UpdatePostCaption(c *gin.Context) {
 		return
 	}
 
-	product.Caption = req.Caption
-
 	c.JSON(200, gin.H{
 		"success": true,
-		"data": gin.H{
-			"id":      product.ID,
-			"user_id": product.UserID,
-			"caption": product.Caption,
-		},
+		"data":    post,
 	})
 }
 

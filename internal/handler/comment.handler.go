@@ -12,6 +12,20 @@ import (
 	"gorm.io/gorm"
 )
 
+func isCommentEmpty(comment string) (bool, string, string) {
+	trimedComment := strings.TrimSpace(comment)
+
+	if trimedComment == "" {
+		return false, "", "Comment cannot be empty"
+	}
+
+	if len(trimedComment) > 500 {
+		return false, "", "comment_text exceed 500 character after space trim"
+	}
+
+	return true, trimedComment, ""
+}
+
 func AddComment(c *gin.Context) {
 	userId := c.GetUint("userId")
 	postIdString := c.Param("postId")
@@ -56,21 +70,14 @@ func AddComment(c *gin.Context) {
 		return
 	}
 
-	commentText := strings.TrimSpace(req.CommentText)
+	isValid, commentText, message := isCommentEmpty(req.CommentText)
 
-	if commentText == "" {
+	if !isValid {
 		c.JSON(400, gin.H{
 			"success": false,
-			"message": "Comment cannot be empty",
+			"message": message,
 		})
 		return
-	}
-
-	if len(commentText) > 500 {
-		c.JSON(400, gin.H{
-			"success": false,
-			"message": "comment_text exceed 500 character after space trim",
-		})
 	}
 
 	comment := models.Comment{
@@ -88,6 +95,82 @@ func AddComment(c *gin.Context) {
 	}
 
 	c.JSON(201, gin.H{
+		"success": true,
+		"data":    comment,
+	})
+}
+
+func UpdateComment(c *gin.Context) {
+	userId := c.GetUint("userId")
+
+	commentIdString := c.Param("id")
+
+	commentId, err := strconv.ParseUint(commentIdString, 10, 64)
+
+	if err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": "Invalid id format",
+		})
+		return
+	}
+
+	var comment models.Comment
+
+	if err := db.DB.First(&comment, commentId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{
+				"success": false,
+				"message": "Comment not found",
+			})
+			return
+		}
+
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to fetch comment: " + err.Error(),
+		})
+		return
+	}
+
+	if comment.UserID != userId {
+		c.JSON(403, gin.H{
+			"success": false,
+			"message": "User not allowed",
+		})
+		return
+	}
+
+	var req struct {
+		CommentText string `json:"comment_text" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": utils.ParseErrorMessage(err),
+		})
+		return
+	}
+
+	isValid, commentText, message := isCommentEmpty(req.CommentText)
+
+	if !isValid {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": message,
+		})
+		return
+	}
+
+	if err := db.DB.Model(&comment).Where("id = ?", commentId).Update("comment_text", commentText).Error; err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to update comment: " + err.Error(),
+		})
+	}
+
+	c.JSON(200, gin.H{
 		"success": true,
 		"data":    comment,
 	})
