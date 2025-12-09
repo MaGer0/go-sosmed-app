@@ -64,7 +64,6 @@ func UploadMedia(c *gin.Context, postId uint, tx *gorm.DB) ([]models.PostMedia, 
 
 func UpdatePostMedia(c *gin.Context) {
 	userId := c.GetUint("userId")
-
 	postIdString := c.Param("postId")
 
 	postId, err := strconv.ParseUint(postIdString, 10, 64)
@@ -131,7 +130,6 @@ func UpdatePostMedia(c *gin.Context) {
 
 	for _, file := range files {
 		contentType := file.Header.Get("Content-Type")
-
 		if !strings.HasPrefix(contentType, "image/") && !strings.HasPrefix(contentType, "video/") {
 			c.JSON(400, gin.H{
 				"success": false,
@@ -139,7 +137,9 @@ func UpdatePostMedia(c *gin.Context) {
 			})
 			return
 		}
+	}
 
+	for _, file := range files {
 		uniqueName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), file.Filename)
 		relativePath := "uploads/" + uniqueName
 		fullPath := "./storage/uploads/" + uniqueName
@@ -197,13 +197,3 @@ func UpdatePostMedia(c *gin.Context) {
 		"tes":     tes,
 	})
 }
-
-// func UpdatePostMedia(c *gin.Context) {
-// 	postIdString := c.Param("postId")
-
-// 	postId, err := strconv.ParseUint(postIdString)
-
-// 	if err != nil {
-
-// 	}
-// }
