@@ -26,4 +26,5 @@ func RegisterRoutes(r *gin.Engine) {
 
 	// Post Media
 	api.PATCH("/post-media/:postId", handler.AuthMiddleware, handler.UpdatePostMedia)
+	api.DELETE("/post-media/:postId", handler.AuthMiddleware, handler.DeletePostMedia)
 }

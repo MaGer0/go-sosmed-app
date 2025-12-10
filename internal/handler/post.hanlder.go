@@ -191,7 +191,7 @@ func DeletePost(c *gin.Context) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(404, gin.H{
 				"success": false,
-				"message": "Post not found",
+				"message": "Post with ID " + idString + " not found",
 			})
 			return
 		}
@@ -221,25 +221,27 @@ func DeletePost(c *gin.Context) {
 		return
 	}
 
-	for _, postMedium := range postMedia {
-		if err := os.Remove(filepath.Join("storage", postMedium.ImageURL)); err != nil {
+	tx := db.DB.Begin()
+
+	if len(postMedia) > 0 {
+		for _, postMedium := range postMedia {
+			if err := os.Remove(filepath.Join("storage", postMedium.ImageURL)); err != nil {
+				c.JSON(500, gin.H{
+					"success": false,
+					"message": "Failed to delete post media: " + err.Error(),
+				})
+				return
+			}
+		}
+
+		if err := tx.Where("post_id = ?", post.ID).Delete(&models.PostMedia{}).Error; err != nil {
+			tx.Rollback()
 			c.JSON(500, gin.H{
 				"success": false,
 				"message": "Failed to delete post media: " + err.Error(),
 			})
 			return
 		}
-	}
-
-	tx := db.DB.Begin()
-
-	if err := tx.Where("post_id = ?", post.ID).Delete(&models.PostMedia{}).Error; err != nil {
-		tx.Rollback()
-		c.JSON(500, gin.H{
-			"success": false,
-			"message": "Failed to delete post media: " + err.Error(),
-		})
-		return
 	}
 
 	if err := tx.Delete(&post).Error; err != nil {
@@ -251,8 +253,10 @@ func DeletePost(c *gin.Context) {
 		return
 	}
 
+	tx.Commit()
+
 	c.JSON(200, gin.H{
 		"success": true,
-		"data":    post,
+		"message": "Post with ID " + idString + " deleted successfully",
 	})
 }

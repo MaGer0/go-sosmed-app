@@ -181,7 +181,7 @@ func UpdatePostMedia(c *gin.Context) {
 				"success": false,
 				"message": "Post media cannot be found",
 			})
-			return 
+			return
 		}
 
 		for _, mediumToDelete := range mediaToDelete {
@@ -210,4 +210,103 @@ func UpdatePostMedia(c *gin.Context) {
 		"success": true,
 		"data":    postMedia,
 	})
+}
+
+func DeletePostMedia(c *gin.Context) {
+	userId := c.GetUint("userId")
+	postIdString := c.Param("postId")
+
+	postId, err := strconv.ParseUint(postIdString, 10, 64)
+
+	if err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": "Invalid post id format",
+		})
+		return
+	}
+
+	var post models.Post
+	if err := db.DB.Select("user_id").First(&post, postId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{
+				"success": false,
+				"message": "Post not found",
+			})
+			return
+		}
+
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to fetch post: " + err.Error(),
+		})
+		return
+	}
+
+	if userId != post.UserID {
+		c.JSON(403, gin.H{
+			"success": false,
+			"message": "User not allowed",
+		})
+		return
+	}
+
+	var req struct {
+		PostMediaIdsToDelete []uint `json:"post_media_ids_to_delete" bind:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": utils.ParseErrorMessage(err),
+		})
+		return
+	}
+
+	if len(req.PostMediaIdsToDelete) == 0 {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": "post_media_ids_to_delete is empty",
+		})
+		return
+	}
+
+	var PostMediaIdsToDelete []models.PostMedia
+	if err := db.DB.Select("id").Where("id IN ?", req.PostMediaIdsToDelete).Find(&PostMediaIdsToDelete).Error; err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to check if ID exists: " + err.Error(),
+		})
+		return
+	}
+
+	var stringIdsSlice []string
+
+	for _, postMediumId := range req.PostMediaIdsToDelete {
+		stringIdsSlice = append(stringIdsSlice, fmt.Sprintf("%d", postMediumId))
+	}
+
+	stringIds := strings.Join(stringIdsSlice, ", ")
+
+	if len(PostMediaIdsToDelete) == 0 {
+		c.JSON(404, gin.H{
+			"success": false,
+			"message": "Post media with ID " + stringIds + " not found",
+		})
+		return
+	}
+
+	if err := db.DB.Where("id IN ?", req.PostMediaIdsToDelete).Where("post_id = ?", postId).Delete(&models.PostMedia{}).Error; err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to delete post media: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"message": "Post media with ID " + stringIds + " deleted successfully",
+	})
+
 }
