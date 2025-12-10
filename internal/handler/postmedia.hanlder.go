@@ -16,6 +16,68 @@ import (
 	"gorm.io/gorm"
 )
 
+func GetPostMedia(c *gin.Context) {
+	userId := c.GetUint("userId")
+	stringPostId := c.Param("postId")
+
+	postId, err := strconv.ParseUint(stringPostId, 10, 64)
+
+	if err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": "Invalid PostID format",
+		})
+		return
+	}
+
+	var post models.Post
+	if err := db.DB.Select("id", "user_id").First(&post, postId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{
+				"success": false,
+				"data":    fmt.Sprintf("Post with ID %s not found", stringPostId),
+			})
+		}
+
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to check if Post exists",
+		})
+		return
+	}
+
+	if post.UserID != userId {
+		c.JSON(403, gin.H{
+			"success": false,
+			"data":    "User not allowed",
+		})
+		return
+	}
+
+	var postMedia []models.PostMedia
+	if err := db.DB.Where("post_id = ?", postId).Find(&postMedia).Error; err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"data":    fmt.Sprintf("Failed to fetch PostMedia with PostID %s", stringPostId),
+		})
+	}
+
+	if len(postMedia) == 0 {
+		c.JSON(404, gin.H{
+			"success": false,
+			"data":    fmt.Sprintf("PostMedia with PostID %s not found", stringPostId),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"data": gin.H{
+			"post_media": postMedia,
+		},
+	})
+}
+
 // Perbaikin, ini mah itungannya belum mandiri (masih dipanggil di function lain, belum benar-benar handler sendiri)
 func UploadMedia(c *gin.Context, postId uint, tx *gorm.DB) ([]models.PostMedia, error) {
 	form, err := c.MultipartForm()
