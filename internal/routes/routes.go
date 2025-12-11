@@ -28,4 +28,8 @@ func RegisterRoutes(r *gin.Engine) {
 	api.GET("/post-media/:postId", handler.AuthMiddleware, handler.GetPostMedia)
 	api.PATCH("/post-media/:postId", handler.AuthMiddleware, handler.UpdatePostMedia)
 	api.DELETE("/post-media/:postId", handler.AuthMiddleware, handler.DeletePostMedia)
+
+	// Like
+	api.POST("/likes/:postId", handler.AuthMiddleware, handler.LikePost)
+	api.GET("/likes/:postId/count", handler.AuthMiddleware, handler.CountPostLikes)
 }
