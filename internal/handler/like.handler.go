@@ -59,7 +59,7 @@ func CountPostLikes(c *gin.Context) {
 }
 
 func LikePost(c *gin.Context) {
-	userId := c.GetUint("userid")
+	userId := c.GetUint("userId")
 	stringPostId := c.Param("postId")
 
 	postId, err := strconv.ParseUint(stringPostId, 10, 64)
@@ -67,7 +67,7 @@ func LikePost(c *gin.Context) {
 	if err != nil {
 		c.JSON(400, gin.H{
 			"success": false,
-			"data":    "Invalid ID format",
+			"message": "Invalid ID format",
 		})
 		return
 	}
@@ -77,7 +77,7 @@ func LikePost(c *gin.Context) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(404, gin.H{
 				"success": false,
-				"data":    fmt.Sprintf("Post with ID %s not found", stringPostId),
+				"message": fmt.Sprintf("Post with ID %s not found", stringPostId),
 			})
 			return
 		}
@@ -95,7 +95,7 @@ func LikePost(c *gin.Context) {
 	if err == nil {
 		c.JSON(400, gin.H{
 			"success": false,
-			"message": "Like is already exists",
+			"message": "Like already exists",
 		})
 		return
 	}
@@ -103,7 +103,7 @@ func LikePost(c *gin.Context) {
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(500, gin.H{
 			"success": false,
-			"message": fmt.Sprintf("Failed to check if Like exsits: %s", err.Error()),
+			"message": fmt.Sprintf("Failed to check if Like exists: %s", err.Error()),
 		})
 		return
 	}
@@ -124,5 +124,66 @@ func LikePost(c *gin.Context) {
 	c.JSON(201, gin.H{
 		"success": true,
 		"data":    like,
+	})
+}
+
+func UnlikePost(c *gin.Context) {
+	userId := c.GetUint("userId")
+	stringPostId := c.Param("postId")
+
+	postId, err := strconv.ParseUint(stringPostId, 10, 64)
+
+	if err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"message": "Invalid PostID format",
+		})
+		return
+	}
+
+	var post models.Post
+	if err := db.DB.Select("id").First(&post, postId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{
+				"success": false,
+				"message": fmt.Sprintf("Post with ID %s not found", stringPostId),
+			})
+			return
+		}
+
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": fmt.Sprintf("Failed to check if Post with ID %s exists", stringPostId),
+		})
+		return
+	}
+
+	var like models.Like
+	if err := db.DB.Where("post_id = ? AND user_id = ?", post.ID, userId).First(&like).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, gin.H{
+				"success": false,
+				"message": fmt.Sprintf("Like with PostID %s and UserID %d not found", stringPostId, userId),
+			})
+			return
+		}
+
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to check Like",
+		})
+	}
+
+	if err := db.DB.Delete(&like).Error; err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"message": "Failed to unlike post",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"message": "Post unliked successfully",
 	})
 }

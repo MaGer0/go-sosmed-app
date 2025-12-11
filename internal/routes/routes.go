@@ -32,4 +32,5 @@ func RegisterRoutes(r *gin.Engine) {
 	// Like
 	api.POST("/likes/:postId", handler.AuthMiddleware, handler.LikePost)
 	api.GET("/likes/:postId/count", handler.AuthMiddleware, handler.CountPostLikes)
+	api.DELETE("/likes/:postId", handler.AuthMiddleware, handler.UnlikePost)
 }
